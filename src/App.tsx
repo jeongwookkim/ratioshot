@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Facing, Preview, Shot, captureFrame, cropAll, makePreviews, openCamera, openDemoStream, saveCrops } from "./camera";
 import { t } from "./i18n";
-import { showBanner } from "./native";
+import { isNative, showBanner } from "./native";
+import { NATIVE_FRAME, captureNative, flipNative, startNative, stopNative } from "./nativeCamera";
 import { packRows } from "./pack";
 import { DEFAULT_ENABLED, RATIOS, RatioId, Rect, cropRect, frameName } from "./ratios";
 
@@ -65,6 +66,8 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
   const demo = new URLSearchParams(location.search).has("demo");
   const mirror = facing === "user" && !demo;
 
+  const native = isNative && !demo;
+
   useEffect(() => {
     let stream: MediaStream | null = null;
     let cancelled = false;
@@ -72,6 +75,14 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
     setFrame(null);
     (async () => {
       try {
+        if (native) {
+          // Native preview sits behind the transparent web view, sized to the stage box.
+          document.documentElement.classList.add("native-cam");
+          await startNative(stageRef.current!, facing);
+          if (cancelled) return;
+          setFrame({ w: NATIVE_FRAME.w, h: NATIVE_FRAME.h });
+          return;
+        }
         stream = demo ? await openDemoStream() : await openCamera(facing);
         if (cancelled) {
           stream.getTracks().forEach((tr) => tr.stop());
@@ -88,8 +99,10 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((tr) => tr.stop());
+      if (native) void stopNative();
     };
-  }, [facing, demo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native ? "native" : facing, demo]);
 
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setBox({ w: e.contentRect.width, h: e.contentRect.height }));
@@ -111,14 +124,32 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
       .sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h); // biggest first so small frames paint on top
   }, [frame, layout, enabled]);
 
-  const shoot = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !frame) return;
+  const [capturing, setCapturing] = useState(false);
+  const shoot = useCallback(async () => {
+    if (!frame || capturing) return;
     setFlash(true);
+    if (native) {
+      setCapturing(true);
+      try {
+        onShot(await captureNative());
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setCapturing(false);
+      }
+      return;
+    }
+    const v = videoRef.current;
+    if (!v) return;
     const s = captureFrame(v, mirror);
     // let the flash paint before the (synchronous) preview work
     requestAnimationFrame(() => requestAnimationFrame(() => onShot(s)));
-  }, [frame, mirror, onShot]);
+  }, [frame, mirror, onShot, native, capturing]);
+
+  const flip = () => {
+    if (native) void flipNative();
+    else setFacing((f) => (f === "user" ? "environment" : "user"));
+  };
 
   const toScreen = (rect: Rect) =>
     layout
@@ -133,7 +164,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
       </div>
 
       <div className="stage" ref={stageRef}>
-        <video ref={videoRef} playsInline muted autoPlay className={mirror ? "mirror" : undefined} />
+        {!native && <video ref={videoRef} playsInline muted autoPlay className={mirror ? "mirror" : undefined} />}
         <div className="frames">
           {frames.map(({ r, rect }, i) => (
             <div key={r.id} className="frame" style={{ ...toScreen(rect), "--c": r.color, zIndex: i + 1 }}>
@@ -152,6 +183,11 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
           </div>
         )}
         <div className={`flash${flash ? " on" : ""}`} onAnimationEnd={() => setFlash(false)} />
+        {capturing && (
+          <div className="busy">
+            <span className="spinner" />
+          </div>
+        )}
         {error && (
           <div className="cam-error">
             <div>
@@ -176,10 +212,10 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
         </div>
         <div className="bar">
           <div className="thumb">{lastSaved && <img src={lastSaved} alt="" />}</div>
-          <button className="shutter" onClick={shoot} disabled={!frame} aria-label={t.shoot}>
+          <button className="shutter" onClick={shoot} disabled={!frame || capturing} aria-label={t.shoot}>
             <span />
           </button>
-          <button className="flip" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} aria-label={t.flip}>
+          <button className="flip" onClick={flip} aria-label={t.flip}>
             <FlipIcon />
           </button>
         </div>

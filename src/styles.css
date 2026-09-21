@@ -19,6 +19,10 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
+/* Native camera preview draws behind the web view: everything over it must be see-through. */
+html.native-cam, html.native-cam body, html.native-cam .cam { background: transparent; }
+html.native-cam .stage { background: transparent; }
+html.native-cam .cam-top, html.native-cam .controls { background: #000; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 .spinner {
