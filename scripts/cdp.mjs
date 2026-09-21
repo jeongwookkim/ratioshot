@@ -9,12 +9,12 @@ const [cmd, ...rest] = process.argv.slice(2);
 const frag = process.env.TARGET ?? "chatgpt.com";
 
 if (cmd === "newtab") {
-  const r = await fetch(`http://localhost:9222/json/new?${rest[0]}`, { method: "PUT" });
+  const r = await fetch(`http://localhost:${process.env.PORT ?? 9222}/json/new?${rest[0]}`, { method: "PUT" });
   console.log(JSON.stringify(await r.json()));
   process.exit(0);
 }
 
-const targets = await (await fetch("http://localhost:9222/json/list")).json();
+const targets = await (await fetch(`http://localhost:${process.env.PORT ?? 9222}/json/list`)).json();
 const page = targets.find((t) => t.type === "page" && (process.env.TID ? t.id === process.env.TID : t.url.includes(frag)));
 if (!page) { console.error("no page target for " + frag); process.exit(1); }
 

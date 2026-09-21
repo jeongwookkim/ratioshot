@@ -42,9 +42,20 @@ export async function captureNative(): Promise<Shot> {
   const img = new Image();
   img.src = "data:image/jpeg;base64," + value;
   await img.decode();
+  // The preview box is portrait 3:4 and shows the sensor frame center-cropped to it. If the JPEG
+  // comes back landscape (no EXIF rotation, as on some devices and the emulator), take the same
+  // centered portrait crop so what is saved is what was framed.
+  let sx = 0;
+  let sy = 0;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (sw > sh) {
+    sw = Math.round((sh * NATIVE_FRAME.w) / NATIVE_FRAME.h);
+    sx = Math.round((img.naturalWidth - sw) / 2);
+  }
   const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  canvas.getContext("2d")!.drawImage(img, 0, 0);
-  return { canvas, width: canvas.width, height: canvas.height, orientation: canvas.height >= canvas.width ? "portrait" : "landscape" };
+  canvas.width = sw;
+  canvas.height = sh;
+  canvas.getContext("2d")!.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  return { canvas, width: sw, height: sh, orientation: "portrait" };
 }

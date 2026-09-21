@@ -6,8 +6,13 @@
   --text: #fff;
   --muted: #8e8e93;
   --ad-bottom: 0px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ad-bottom));
+  /* Capacitor injects --safe-area-inset-* (0 when it already pads the web view); MainActivity injects
+     --sys-inset-bottom with the real navigation-bar inset. The AdMob banner is anchored that far above
+     the web view's bottom edge, so the reservation is the ad height plus whatever inset the web view
+     does not already account for. */
+  --sys-inset-bottom: 0px;
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--ad-bottom) + max(0px, var(--sys-inset-bottom) - var(--safe-area-inset-bottom, 0px)));
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; margin: 0; }
