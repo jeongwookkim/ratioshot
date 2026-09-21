@@ -3,8 +3,8 @@
 //   node scripts/release-android.mjs          app bundle for Google Play
 //   node scripts/release-android.mjs --apk    an apk to install on a phone directly
 //
-// Signing: the keystore is ~/multishot-release.jks and its password lives in the macOS Keychain
-// (added once with `security add-generic-password -a multishot -s multishot-keystore -U -w`).
+// Signing: the keystore is ~/ratioshot-release.jks and its password lives in the macOS Keychain
+// (added once with `security add-generic-password -a ratioshot -s ratioshot-keystore -U -w`).
 // Without both, the build is signed with the debug key and Play will refuse it.
 //
 // AdMob: ids come from admob.env (not committed). Without it the app serves Google's test ads,
@@ -18,12 +18,12 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const apk = process.argv.includes("--apk");
 
-const keystore = join(homedir(), "multishot-release.jks");
+const keystore = join(homedir(), "ratioshot-release.jks");
 let signing = {};
 if (existsSync(keystore)) {
   try {
-    const pw = execFileSync("security", ["find-generic-password", "-a", "multishot", "-s", "multishot-keystore", "-w"], { encoding: "utf8" }).trim();
-    if (pw) signing = { MULTISHOT_KEYSTORE: keystore, MULTISHOT_KEYSTORE_PASSWORD: pw, MULTISHOT_KEY_ALIAS: "multishot" };
+    const pw = execFileSync("security", ["find-generic-password", "-a", "ratioshot", "-s", "ratioshot-keystore", "-w"], { encoding: "utf8" }).trim();
+    if (pw) signing = { RATIOSHOT_KEYSTORE: keystore, RATIOSHOT_KEYSTORE_PASSWORD: pw, RATIOSHOT_KEY_ALIAS: "ratioshot" };
   } catch {
     /* no Keychain entry */
   }

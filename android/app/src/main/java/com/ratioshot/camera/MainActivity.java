@@ -1,4 +1,4 @@
-package com.multishot.camera;
+package com.ratioshot.camera;
 
 import com.getcapacitor.BridgeActivity;
 

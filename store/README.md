@@ -1,6 +1,6 @@
-# Play Console 체크리스트 (멀티샷)
+# Play Console 체크리스트 (RatioShot)
 
-앱 만들기: 앱 이름 `멀티샷 : 한 번 찍고 모든 비율로 저장`, 앱, 무료, 패키지 `com.multishot.camera`.
+앱 만들기: 앱 이름 `RatioShot: Shoot Once, Every Ratio`, 기본 언어 **영어(미국)**, 앱, 무료, 패키지 `com.ratioshot.camera`.
 
 ## 올릴 파일
 
@@ -10,11 +10,11 @@
 | 앱 아이콘 512×512 | `store/out/play-icon-512.png` |
 | 피처 그래픽 1024×500 | `store/out/feature-1024x500.png` |
 | 휴대전화 스크린샷 | `store/out/shots/*.png` (1170×2532, 4장) |
-| 등록정보 문구 | `store/out/listing/ko.txt`, `en.txt` |
+| 등록정보 문구 | `store/out/listing/en.txt`(기본 언어 en-US), `ko.txt` |
 
 ## 설문 답
 
-- **개인정보처리방침 URL**: https://jeongwookkim.github.io/multishot/privacy.html
+- **개인정보처리방침 URL**: https://jeongwookkim.github.io/ratioshot/privacy.html
 - **광고**: 예, 광고 포함 (AdMob 배너)
 - **앱 액세스 권한**: 특별한 액세스 없음 (로그인 없음)
 - **콘텐츠 등급**: 유틸리티. 폭력·성적 콘텐츠·도박 없음, 사용자 생성 콘텐츠 공유 없음 → 전체이용가
@@ -31,6 +31,6 @@
 ## 출시
 
 1. 프로덕션(또는 내부 테스트) → 새 버전 만들기 → `app-release.aab` 업로드 (첫 번들은 콘솔에서 손으로 올려야 한다).
-2. Play 앱 서명 사용(기본). 업로드 키 = `~/multishot-release.jks`.
-3. 출시 노트: "첫 출시. 한 번 촬영으로 4:5·1:1·16:9·9:16·3:2 사진을 동시에 저장합니다."
-4. AdMob 콘솔에서 앱 등록(플랫폼 Android, "Play에 있음"은 출시 후 연결) → 배너 광고 단위 → `admob.env`에 ID → 다시 빌드해서 업데이트 버전으로 올린다. 첫 번들이 테스트 광고 ID로 나가도 되지만 그동안 수익은 0.
+2. Play 앱 서명 사용(기본). 업로드 키 = `~/ratioshot-release.jks`.
+3. 출시 노트: "First release. One shot, saved in 4:5, 1:1, 16:9, 9:16 and 3:2 at once."
+4. AdMob 콘솔에서 앱 등록(이름 RatioShot, 플랫폼 Android, "Play에 있음"은 출시 후 연결) → 배너 광고 단위 → `admob.env`에 ID → 다시 빌드해서 업데이트 버전으로 올린다. 첫 번들이 테스트 광고 ID로 나가도 되지만 그동안 수익은 0.

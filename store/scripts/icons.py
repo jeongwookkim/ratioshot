@@ -37,13 +37,15 @@ art = SRC.resize((380, 380), Image.LANCZOS)
 feat.paste(art, (80, 60))
 draw = ImageDraw.Draw(feat)
 font_path = next((p for p in [
+    "/System/Library/Fonts/SFCompact.ttf",
+    "/System/Library/Fonts/HelveticaNeue.ttc",
     "/System/Library/Fonts/AppleSDGothicNeo.ttc",
     "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
 ] if os.path.exists(p)), None)
 big = ImageFont.truetype(font_path, 76) if font_path else ImageFont.load_default()
 small = ImageFont.truetype(font_path, 34) if font_path else ImageFont.load_default()
-draw.text((500, 150), "멀티샷", font=big, fill=(255, 255, 255))
-draw.text((500, 250), "한 번 찍고, 모든 비율로 저장", font=small, fill=(210, 210, 215))
+draw.text((500, 150), "RatioShot", font=big, fill=(255, 255, 255))
+draw.text((500, 250), "Shoot once. Save every ratio.", font=small, fill=(210, 210, 215))
 draw.text((500, 300), "4:5 · 1:1 · 16:9 · 9:16 · 3:2", font=small, fill=(255, 95, 168))
 feat.save(os.path.join(OUT, "feature-1024x500.png"))
 print("icons done")

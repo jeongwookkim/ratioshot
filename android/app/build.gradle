@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.multishot.camera"
+    namespace = "com.ratioshot.camera"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.multishot.camera"
+        applicationId "com.ratioshot.camera"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -22,18 +22,18 @@ android {
     // password from the macOS Keychain). Without it the release build uses the debug key.
     signingConfigs {
         release {
-            def ks = System.getenv("MULTISHOT_KEYSTORE")
+            def ks = System.getenv("RATIOSHOT_KEYSTORE")
             if (ks) {
                 storeFile file(ks)
-                storePassword System.getenv("MULTISHOT_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("MULTISHOT_KEY_ALIAS") ?: "multishot"
-                keyPassword System.getenv("MULTISHOT_KEYSTORE_PASSWORD")
+                storePassword System.getenv("RATIOSHOT_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("RATIOSHOT_KEY_ALIAS") ?: "ratioshot"
+                keyPassword System.getenv("RATIOSHOT_KEYSTORE_PASSWORD")
             }
         }
     }
     buildTypes {
         release {
-            if (System.getenv("MULTISHOT_KEYSTORE")) signingConfig signingConfigs.release
+            if (System.getenv("RATIOSHOT_KEYSTORE")) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

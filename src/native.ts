@@ -5,12 +5,14 @@ import { Media } from "@capacitor-community/media";
 
 export const isNative = Capacitor.isNativePlatform();
 
-const ALBUM = "멀티샷";
+import { t } from "./i18n";
+
+const ALBUM = t.album;
 // Google's test banner unit unless a real one is injected by scripts/release-android.mjs.
 const BANNER_ID = import.meta.env.VITE_ADMOB_BANNER || "ca-app-pub-3940256099942544/6300978111";
 const BANNER_IS_TEST = !import.meta.env.VITE_ADMOB_BANNER;
 
-/** Save JPEG blobs to the photo gallery (album "멀티샷"). */
+/** Save JPEG blobs to the photo gallery (album "RatioShot"). */
 export async function saveToGallery(files: { blob: Blob; name: string }[]): Promise<void> {
   let album = (await Media.getAlbums()).albums.find((a) => a.name === ALBUM);
   if (!album) {

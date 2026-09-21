@@ -9,6 +9,7 @@ import {
   openDemoStream,
   saveCrops,
 } from "./camera";
+import { t } from "./i18n";
 import { showBanner } from "./native";
 import { packRows } from "./pack";
 import {
@@ -20,7 +21,7 @@ import {
   frameName,
 } from "./ratios";
 
-const STORAGE_KEY = "multishot.enabled";
+const STORAGE_KEY = "ratioshot.enabled";
 
 function loadEnabled(): RatioId[] {
   try {
@@ -112,7 +113,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
       } catch (e) {
         setError(
           (e as Error).name === "NotAllowedError"
-            ? "설정에서 카메라 접근을 허용해주세요."
+            ? t.cameraDenied
             : (e as Error).message,
         );
       }
@@ -173,7 +174,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
         <span className="icon" aria-hidden>
           <GearIcon />
         </span>
-        <span className="title">MultiShot</span>
+        <span className="title">RatioShot</span>
         <span className="res">
           {frame ? frameName(frame.w, frame.h) : "--"}
         </span>
@@ -197,7 +198,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
               >
                 {r.id !== "orig" && (
                   <span className="chip" style={{ left: 8 + i * 68 }}>
-                    {r.name} {r.label.split(" ")[0]}
+                    {r.name} {t.short[r.label]}
                   </span>
                 )}
               </div>
@@ -218,9 +219,9 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
               onClick={() => onToggle(r.id)}
               aria-pressed={enabled.includes(r.id)}
             >
-              <span className="r">{r.name}</span>
+              <span className="r">{r.id === "orig" ? t.full : r.name}</span>
               <span className="l">
-                {r.id === "orig" ? "원본" : r.label.split(" ")[0]}
+                {t.short[r.label]}
               </span>
             </button>
           ))}
@@ -229,7 +230,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
         {error && (
           <div className="cam-error">
             <div>
-              <b>카메라를 열 수 없어요</b>
+              <b>{t.cameraError}</b>
               {error}
             </div>
           </div>
@@ -244,19 +245,19 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
           className="shutter"
           onClick={shoot}
           disabled={!frame}
-          aria-label="촬영"
+          aria-label={t.shoot}
         />
         <button
           className="flip"
           onClick={() =>
             setFacing((f) => (f === "user" ? "environment" : "user"))
           }
-          aria-label="카메라 전환"
+          aria-label={t.flip}
         >
           <FlipIcon />
         </button>
         <div className="modes">
-          <span className="on">사진</span>
+          <span className="on">{t.modePhoto}</span>
         </div>
       </div>
     </div>
@@ -308,12 +309,12 @@ function Review({ shot, preselect, onBack, onSaved }: ReviewProps) {
       onSaved(picked[0].url);
       setToast(
         how === "shared"
-          ? `${picked.length}장 공유됨`
-          : `${picked.length}장 저장됨`,
+          ? t.sharedN(picked.length)
+          : t.savedN(picked.length),
       );
     } catch (e) {
       if ((e as Error).name !== "AbortError")
-        setToast("저장 실패: " + (e as Error).message);
+        setToast(t.saveFailed + (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -322,14 +323,14 @@ function Review({ shot, preselect, onBack, onSaved }: ReviewProps) {
   return (
     <div className="review">
       <div className="rv-top">
-        <button className="icon" onClick={onBack} aria-label="뒤로">
+        <button className="icon" onClick={onBack} aria-label={t.back}>
           <BackIcon />
         </button>
         <div>
-          <h1>비율 선택</h1>
-          <p>저장할 비율을 고르세요</p>
+          <h1>{t.pickTitle}</h1>
+          <p>{t.pickSub}</p>
         </div>
-        <button className="icon" onClick={onBack} aria-label="삭제">
+        <button className="icon" onClick={onBack} aria-label={t.discard}>
           <TrashIcon />
         </button>
       </div>
@@ -342,10 +343,10 @@ function Review({ shot, preselect, onBack, onSaved }: ReviewProps) {
           onClick={save}
           disabled={!crops || busy || !selected.size}
         >
-          {selected.size ? `${selected.size}장 저장` : "비율을 선택하세요"}
+          {selected.size ? t.saveN(selected.size) : t.pickOne}
         </button>
         <button className="btn secondary" onClick={onBack}>
-          다시 찍기
+          {t.retake}
         </button>
       </div>
       {toast && (

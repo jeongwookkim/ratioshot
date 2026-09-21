@@ -103,7 +103,7 @@ export async function cropAll(shot: Shot, ids: RatioId[]): Promise<Crop[]> {
 export async function saveCrops(crops: Crop[]): Promise<"saved" | "shared" | "downloaded"> {
   const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
   const files = crops.map(
-    (c) => new File([c.blob], `multishot_${stamp}_${c.ratio.id.replace(":", "x")}.jpg`, { type: "image/jpeg" }),
+    (c) => new File([c.blob], `ratioshot_${stamp}_${c.ratio.id.replace(":", "x")}.jpg`, { type: "image/jpeg" }),
   );
   if (isNative) {
     await saveToGallery(files.map((f) => ({ blob: f, name: f.name })));

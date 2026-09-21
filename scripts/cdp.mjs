@@ -55,6 +55,12 @@ if (cmd === "eval") {
   // Ignore self-signed cert (vite basic-ssl) — session-scoped, so navigate within the same session.
   await send("Security.setIgnoreCertificateErrors", { ignore: true });
   await send("Page.enable");
+  // LOCALE=en-US: make navigator.language report that locale for this navigation.
+  if (process.env.LOCALE) {
+    const ua = (await send("Browser.getVersion")).result.userAgent;
+    await send("Emulation.setUserAgentOverride", { userAgent: ua, acceptLanguage: process.env.LOCALE });
+    await send("Emulation.setLocaleOverride", { locale: process.env.LOCALE });
+  }
   await send("Page.navigate", { url: rest[0] });
   await new Promise((r) => setTimeout(r, 2500));
   const r = await send("Runtime.evaluate", { expression: "location.href", returnByValue: true });
