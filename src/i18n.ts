@@ -24,6 +24,8 @@ const ko = {
   sharedN: (n: number) => `${n}장 공유됨`,
   saveFailed: "저장 실패: ",
   album: "RatioShot",
+  starting: "카메라 준비 중",
+  saving: "저장 중",
 };
 const en: typeof ko = {
   feed: "Instagram feed",
@@ -50,6 +52,8 @@ const en: typeof ko = {
   sharedN: (n: number) => (n === 1 ? "1 photo shared" : `${n} photos shared`),
   saveFailed: "Couldn't save: ",
   album: "RatioShot",
+  starting: "Starting camera",
+  saving: "Saving",
 };
 export type LabelKey = "feed" | "profile" | "thumbnail" | "story" | "photo" | "full";
 export const t = /^ko\b/i.test(navigator.language) ? ko : en;

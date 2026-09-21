@@ -78,6 +78,28 @@ export interface Crop {
   blob: Blob;
 }
 
+export interface Preview {
+  ratio: Ratio;
+  rect: Rect;
+  url: string;
+}
+
+/**
+ * Small preview per ratio, synchronously, so the pick screen appears the moment the shutter fires.
+ * Full-resolution JPEGs are only encoded for the ratios the user saves (see cropAll).
+ */
+export function makePreviews(shot: Shot, maxSide = 720): Preview[] {
+  return RATIOS.map((ratio) => {
+    const rect = cropRect(shot.width, shot.height, ratio);
+    const k = Math.min(1, maxSide / Math.max(rect.w, rect.h));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(rect.w * k));
+    c.height = Math.max(1, Math.round(rect.h * k));
+    c.getContext("2d")!.drawImage(shot.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
+    return { ratio, rect, url: c.toDataURL("image/jpeg", 0.85) };
+  });
+}
+
 async function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), type, quality),
