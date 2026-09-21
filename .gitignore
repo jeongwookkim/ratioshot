@@ -5,5 +5,4 @@ android/app/release
 *.jks
 *.aab
 *.apk
-admob.env
 .venv
