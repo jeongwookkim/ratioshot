@@ -197,7 +197,7 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
                 style={{ ...toScreen(rect), "--c": r.color, zIndex: i + 1 }}
               >
                 {r.id !== "orig" && (
-                  <span className="chip" style={{ left: 8 + i * 68 }}>
+                  <span className="chip">
                     {r.name} {t.short[r.label]}
                   </span>
                 )}

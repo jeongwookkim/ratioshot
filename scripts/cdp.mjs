@@ -65,6 +65,73 @@ if (cmd === "eval") {
   await new Promise((r) => setTimeout(r, 2500));
   const r = await send("Runtime.evaluate", { expression: "location.href", returnByValue: true });
   console.log(r.result.result.value);
+} else if (cmd === "upload") {
+  // upload "<button text>" <nth> <file...>: click the nth button with that text, catch the file
+  // chooser it opens, and hand it the files.
+  const [text, nth, ...files] = rest;
+  const chosen = new Promise((resolve) => ws.addEventListener("message", (e) => { const m = JSON.parse(e.data); if (m.method === "Page.fileChooserOpened") resolve(m.params); }));
+  await send("Page.enable");
+  await send("Page.setInterceptFileChooserDialog", { enabled: true });
+  // A file chooser needs a real (trusted) click, so click through the input domain.
+  const r = await send("Runtime.evaluate", { expression: `(() => { const b=[...document.querySelectorAll('button')].filter(e=>e.innerText.trim()===${JSON.stringify(text)})[${+nth}]; b.scrollIntoView({block:'center'}); const q=b.getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2}); })()`, returnByValue: true });
+  const { x, y } = JSON.parse(r.result.result.value);
+  await new Promise((r) => setTimeout(r, 300));
+  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+  await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+  await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+  const ev = await Promise.race([chosen, new Promise((r) => setTimeout(() => r(null), 8000))]);
+  if (!ev) { console.error("no file chooser opened"); process.exit(5); }
+  await send("DOM.setFileInputFiles", { files: files.map((f) => f.startsWith("/") ? f : process.cwd() + "/" + f), backendNodeId: ev.backendNodeId });
+  await send("Page.setInterceptFileChooserDialog", { enabled: false });
+  console.log(`uploaded ${files.length} file(s) (${ev.mode})`);
+} else if (cmd === "setfile") {
+  // setfile <nth input[type=file]> <file...>: hand files straight to an existing file input.
+  const [nth, ...files] = rest;
+  const doc = await send("DOM.getDocument", { depth: 0 });
+  const q = await send("DOM.querySelectorAll", { nodeId: doc.result.root.nodeId, selector: "input[type=file]" });
+  const nodeId = q.result.nodeIds[+nth];
+  if (!nodeId) { console.error("no such file input"); process.exit(6); }
+  await send("DOM.setFileInputFiles", { nodeId, files: files.map((f) => f.startsWith("/") ? f : process.cwd() + "/" + f) });
+  console.log(`set ${files.length} file(s) on input #${nth}`);
+} else if (cmd === "asset") {
+  // asset <nth "애셋 추가" button> <file...>: Play Console asset library flow — open the panel with a
+  // trusted click, upload each file through its file input, select them all, press 추가.
+  const [nth, ...files] = rest;
+  const click = async (x, y) => {
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+    await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+  };
+  const evalJson = async (expr) => JSON.parse((await send("Runtime.evaluate", { expression: expr, returnByValue: true })).result.result.value);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const btn = await evalJson(`(() => { const b=[...document.querySelectorAll('button')].filter(e=>e.innerText.trim()==='애셋 추가')[${+nth}]; b.scrollIntoView({block:'center'}); const q=b.getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2}); })()`);
+  await sleep(300);
+  await click(btn.x, btn.y);
+  await sleep(1500);
+  const doc = await send("DOM.getDocument", { depth: 0 });
+  const names = [];
+  for (const f of files) {
+    const q = await send("DOM.querySelectorAll", { nodeId: doc.result.root.nodeId, selector: "input[type=file]" });
+    const nodeId = q.result.nodeIds[0];
+    if (!nodeId) { console.error("no file input in asset panel"); process.exit(6); }
+    await send("DOM.setFileInputFiles", { nodeId, files: [f.startsWith("/") ? f : process.cwd() + "/" + f] });
+    names.push(f.split("/").pop());
+    await sleep(4000);
+  }
+  // Select every uploaded card: hover its thumbnail, click the selection circle at its top-left.
+  for (const name of names) {
+    const img = await evalJson(`(() => { const t=[...document.querySelectorAll('*')].find(e=>e.childElementCount===0 && e.innerText && e.innerText.trim()===${JSON.stringify(name)}); if(!t) return 'null'; const card=t.closest('[role=listitem], li, div'); const im=[...card.parentElement.querySelectorAll('img')][0] || card.querySelector('img'); const q=(im||card).getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2,w:q.width,h:q.height}); })()`);
+    if (!img) { console.error("card not found: " + name); process.exit(7); }
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: img.x, y: img.y });
+    await sleep(400);
+    await click(img.x - 21, img.y - 21); // selection circle at the thumbnail top-left
+    await sleep(500);
+  }
+  const add = await evalJson(`(() => { const b=[...document.querySelectorAll('button')].find(e=>e.getAttribute('aria-label')==='추가'); if(!b) return 'null'; const q=b.getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2}); })()`);
+  if (!add) { console.error("no 추가 button (selection failed)"); process.exit(8); }
+  await click(add.x, add.y);
+  await sleep(2500);
+  console.log(`placed ${names.length} asset(s) into slot #${nth}`);
 } else if (cmd === "call") {
   const res = await send(rest[0], rest[1] ? JSON.parse(rest[1]) : {});
   console.log(JSON.stringify(res.result ?? res.error));
