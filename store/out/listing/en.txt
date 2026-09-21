@@ -1,0 +1,24 @@
+App name (30)
+MultiShot: One Shot, Every Ratio
+
+Short description (80)
+Shoot once and save 4:5, 1:1, 16:9, 9:16 and 3:2 versions of the photo at the same time.
+
+Full description (4000)
+MultiShot is a camera app that saves one photo in several aspect ratios at once: 4:5 for Instagram feeds, 1:1 for profiles, 16:9 for YouTube thumbnails, 9:16 for stories and 3:2 for regular prints. No more reshooting or cropping the same picture again and again.
+
+See every ratio in the viewfinder
+The frames of the ratios you pick are overlaid on the live preview, each in its own color. Compose once so your subject sits inside all of them, and every crop comes out right.
+
+Pick after you shoot
+After the shot, all six versions tile the screen edge to edge. Tap the ones you like and save them together. Photos land in a "멀티샷" (MultiShot) album, one file per ratio.
+
+Features
+• 4:5 feed, 1:1 profile, 16:9 thumbnail, 9:16 story, 3:2 and the full original
+• Turn ratios on and off; your choice is remembered
+• Crops are cut from the full sensor frame, so nothing is downscaled
+• Front and rear camera
+• Photos are processed on your device only and never uploaded
+• Free, with a small banner ad; no in-app purchases
+
+Made for creators, sellers and anyone who posts the same photo to more than one platform.

@@ -1,0 +1,9 @@
+node_modules
+dist
+android/local.properties
+android/app/release
+*.jks
+*.aab
+*.apk
+admob.env
+.venv
