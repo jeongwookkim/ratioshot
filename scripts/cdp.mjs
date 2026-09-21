@@ -132,6 +132,39 @@ if (cmd === "eval") {
   await click(add.x, add.y);
   await sleep(2500);
   console.log(`placed ${names.length} asset(s) into slot #${nth}`);
+} else if (cmd === "click") {
+  // click "<exact text>" [nth] [selector]: trusted mouse click on the nth element with that text.
+  const [text, nth = "0", sel = "button, a, [role=option], [role=menuitem], [role=radio], [role=checkbox], label, span, div"] = rest;
+  const r = await send("Runtime.evaluate", { expression: `(() => { const all=[...document.querySelectorAll(${JSON.stringify(sel)})].filter(e=>e.innerText && e.innerText.trim()===${JSON.stringify(text)} && e.getBoundingClientRect().width>0); const b=all[${+nth}]; if(!b) return 'null'; b.scrollIntoView({block:'center'}); const q=b.getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2,n:all.length}); })()`, returnByValue: true });
+  const v = JSON.parse(r.result.result.value);
+  if (!v) { console.error("not found: " + text); process.exit(9); }
+  await new Promise((r) => setTimeout(r, 250));
+  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: v.x, y: v.y });
+  await send("Input.dispatchMouseEvent", { type: "mousePressed", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  console.log(`clicked "${text}" (${v.n} match)`);
+} else if (cmd === "choose") {
+  // choose <radio|checkbox> "<label prefix>": trusted click on the control whose nearby text starts with it.
+  const [kind, text] = rest;
+  const r = await send("Runtime.evaluate", { expression: `(() => { const ins=[...document.querySelectorAll('input[type=${kind}]')].filter(i=>i.getBoundingClientRect().width>0 || true); for (const i of ins) { let p=i; for(let k=0;k<7;k++){ p=p.parentElement; if(p && (p.innerText||'').trim()) break; } if ((p.innerText||'').trim().startsWith(${JSON.stringify(text)})) { p.scrollIntoView({block:'center'}); const q=(i.getBoundingClientRect().width>0? i : p).getBoundingClientRect(); return JSON.stringify({x:q.x+Math.min(q.width/2,12),y:q.y+Math.min(q.height/2,12), was:i.checked}); } } return 'null'; })()`, returnByValue: true });
+  const v = JSON.parse(r.result.result.value);
+  if (!v) { console.error("no control: " + text); process.exit(9); }
+  await new Promise((r) => setTimeout(r, 250));
+  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: v.x, y: v.y });
+  await send("Input.dispatchMouseEvent", { type: "mousePressed", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  console.log(`chose "${text}"`);
+} else if (cmd === "section") {
+  // section "<heading>" "<button text>": click the first button with that text after the heading (DOM order).
+  const [heading, text] = rest;
+  const r = await send("Runtime.evaluate", { expression: `(() => { const all=[...document.querySelectorAll('*')]; const h=all.find(e=>e.childElementCount<=1 && e.innerText && e.innerText.trim().startsWith(${JSON.stringify(heading)}) && e.innerText.trim().length < ${JSON.stringify(heading)}.length + 12); if(!h) return 'null'; const btns=[...document.querySelectorAll('button, a')].filter(b=>b.innerText.trim()===${JSON.stringify(text)}); const b=btns.find(b=>h.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); if(!b) return 'null'; b.scrollIntoView({block:'center'}); const q=b.getBoundingClientRect(); return JSON.stringify({x:q.x+q.width/2,y:q.y+q.height/2}); })()`, returnByValue: true });
+  const v = JSON.parse(r.result.result.value);
+  if (!v) { console.error("not found: " + heading + " / " + text); process.exit(9); }
+  await new Promise((r) => setTimeout(r, 250));
+  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: v.x, y: v.y });
+  await send("Input.dispatchMouseEvent", { type: "mousePressed", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: v.x, y: v.y, button: "left", clickCount: 1 });
+  console.log(`clicked "${text}" under "${heading}"`);
 } else if (cmd === "call") {
   const res = await send(rest[0], rest[1] ? JSON.parse(rest[1]) : {});
   console.log(JSON.stringify(res.result ?? res.error));
