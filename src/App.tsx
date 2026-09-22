@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Facing, Preview, Shot, captureFrame, cropAll, makePreviews, openCamera, openDemoStream, saveCrops } from "./camera";
+import { Facing, Preview, Shot, captureFrame, cropAll, makePreviews, openCamera, openDemoStream, saveCrops, thumbnail } from "./camera";
 import { t } from "./i18n";
 import { isNative, showBanner } from "./native";
-import { NATIVE_FRAME, captureNative, flipNative, startNative, stopNative } from "./nativeCamera";
+import { NATIVE_FRAME, captureNative, captureSampleNative, flipNative, startNative, stopNative } from "./nativeCamera";
 import { packRows } from "./pack";
 import { DEFAULT_ENABLED, RATIOS, RatioId, Rect, cropRect, frameName } from "./ratios";
 
@@ -19,8 +19,10 @@ function loadEnabled(): RatioId[] {
 }
 
 interface Taken {
-  shot: Shot;
+  /** What the pick screen shows: the full shot on the web, a quick preview-resolution frame in the app. */
   previews: Preview[];
+  /** The full-resolution shot; in the app it may still be decoding while the user picks ratios. */
+  full: Promise<Shot>;
 }
 
 export function App() {
@@ -40,7 +42,12 @@ export function App() {
   // The camera stays mounted underneath the pick screen so the stream never restarts.
   return (
     <>
-      <Camera enabled={enabled} onToggle={toggle} onShot={(shot) => setTaken({ shot, previews: makePreviews(shot) })} lastSaved={lastSaved} />
+      <Camera
+        enabled={enabled}
+        onToggle={toggle}
+        onShot={(quick, full) => setTaken({ previews: makePreviews(quick), full: full ?? Promise.resolve(quick) })}
+        lastSaved={lastSaved}
+      />
       {taken && <Review taken={taken} preselect={enabled} onBack={() => setTaken(null)} onSaved={setLastSaved} />}
     </>
   );
@@ -51,7 +58,7 @@ export function App() {
 interface CameraProps {
   enabled: RatioId[];
   onToggle: (id: RatioId) => void;
-  onShot: (s: Shot) => void;
+  onShot: (quick: Shot, full?: Promise<Shot>) => void;
   lastSaved: string | null;
 }
 
@@ -131,7 +138,13 @@ function Camera({ enabled, onToggle, onShot, lastSaved }: CameraProps) {
     if (native) {
       setCapturing(true);
       try {
-        onShot(await captureNative());
+        // A preview-resolution frame first (fast) so the pick screen opens at once, then the
+        // full-resolution capture, which the save step waits for. Sequential on purpose: the
+        // Camera1 API misbehaves when a preview grab and a still capture overlap.
+        const quick = await captureSampleNative();
+        const full = captureNative();
+        full.catch(() => {});
+        onShot(quick, full);
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -251,9 +264,9 @@ function Review({ taken, preselect, onBack, onSaved }: ReviewProps) {
     setBusy(true);
     try {
       // Full-resolution encode happens here, only for what is being saved.
-      const picked = await cropAll(taken.shot, [...selected]);
+      const picked = await cropAll(await taken.full, [...selected]);
       const how = await saveCrops(picked);
-      onSaved(taken.previews.find((p) => p.ratio.id === picked[0].ratio.id)?.url ?? picked[0].url);
+      onSaved(thumbnail(taken.previews.find((p) => p.ratio.id === picked[0].ratio.id) ?? taken.previews[0]));
       setToast(how === "shared" ? t.sharedN(picked.length) : t.savedN(picked.length));
     } catch (e) {
       if ((e as Error).name !== "AbortError") setToast(t.saveFailed + (e as Error).message);
@@ -330,7 +343,12 @@ function Mosaic({ previews, selected, onToggle }: { previews: Preview[]; selecte
               aria-pressed={on}
               aria-label={p.ratio.name}
             >
-              <img src={p.url} alt="" />
+              <span
+                className="pic"
+                ref={(el) => {
+                  if (el && el.firstChild !== p.canvas) el.replaceChildren(p.canvas);
+                }}
+              />
               <span className="check">
                 <CheckIcon />
               </span>

@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(RatioCropPlugin.class);
         super.onCreate(savedInstanceState);
         // The AdMob banner is anchored one system-bar inset above the bottom of the web view's parent,
         // whether or not Capacitor already padded the web view for that bar. Hand the real inset to
@@ -21,8 +22,8 @@ public class MainActivity extends BridgeActivity {
             int topDp = Math.round(bars.top / density);
             if (getBridge() != null && getBridge().getWebView() != null) {
                 getBridge().getWebView().evaluateJavascript(
-                    "document.documentElement.style.setProperty('--sys-inset-bottom','" + bottomDp + "px');" +
-                    "document.documentElement.style.setProperty('--sys-inset-top','" + topDp + "px');",
+                    "document.documentElement && document.documentElement.style.setProperty('--sys-inset-bottom','" + bottomDp + "px');" +
+                    "document.documentElement && document.documentElement.style.setProperty('--sys-inset-top','" + topDp + "px');",
                     null
                 );
             }

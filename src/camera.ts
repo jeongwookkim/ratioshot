@@ -1,4 +1,4 @@
-import { isNative, saveToGallery } from "./native";
+import { cropNative, isNative, saveToGallery } from "./native";
 import { RATIOS, Ratio, RatioId, Rect, cropRect } from "./ratios";
 
 export type Facing = "environment" | "user";
@@ -49,7 +49,12 @@ export async function openDemoStream(): Promise<MediaStream> {
 }
 
 export interface Shot {
+  /** Pixels, for the web path and previews. */
   canvas: HTMLCanvasElement;
+  /** Native only: the captured JPEG on disk; crops are cut from it natively (see native.ts). */
+  file?: string;
+  /** Native only: x offset of this shot's frame inside the file (landscape files are center-cropped to 3:4). */
+  fileOffsetX?: number;
   width: number;
   height: number;
   orientation: "portrait" | "landscape";
@@ -75,13 +80,17 @@ export interface Crop {
   ratio: Ratio;
   rect: Rect;
   url: string;
-  blob: Blob;
+  /** Web path: encoded in the browser. */
+  blob?: Blob;
+  /** Native path: JPEG written by the RatioCrop plugin. */
+  path?: string;
 }
 
 export interface Preview {
   ratio: Ratio;
   rect: Rect;
-  url: string;
+  /** Small canvas shown directly in the pick screen: no JPEG encode on the tap-to-result path. */
+  canvas: HTMLCanvasElement;
 }
 
 /**
@@ -96,8 +105,18 @@ export function makePreviews(shot: Shot, maxSide = 720): Preview[] {
     c.width = Math.max(1, Math.round(rect.w * k));
     c.height = Math.max(1, Math.round(rect.h * k));
     c.getContext("2d")!.drawImage(shot.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
-    return { ratio, rect, url: c.toDataURL("image/jpeg", 0.85) };
+    return { ratio, rect, canvas: c };
   });
+}
+
+/** Tiny JPEG data URL of a preview, for the gallery thumbnail on the camera screen. */
+export function thumbnail(p: Preview, size = 160): string {
+  const c = document.createElement("canvas");
+  const k = size / Math.max(p.canvas.width, p.canvas.height);
+  c.width = Math.max(1, Math.round(p.canvas.width * k));
+  c.height = Math.max(1, Math.round(p.canvas.height * k));
+  c.getContext("2d")!.drawImage(p.canvas, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.7);
 }
 
 async function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
@@ -108,6 +127,10 @@ async function toBlob(canvas: HTMLCanvasElement, type: string, quality: number):
 
 /** Produce one cropped JPEG per ratio from a shot. */
 export async function cropAll(shot: Shot, ids: RatioId[]): Promise<Crop[]> {
+  if (shot.file) {
+    const wanted = RATIOS.filter((r) => ids.includes(r.id)).map((ratio) => ({ ratio, rect: cropRect(shot.width, shot.height, ratio) }));
+    return cropNative(shot.file, wanted, shot.fileOffsetX ?? 0);
+  }
   const out: Crop[] = [];
   for (const ratio of RATIOS.filter((r) => ids.includes(r.id))) {
     const rect = cropRect(shot.width, shot.height, ratio);
@@ -125,10 +148,10 @@ export async function cropAll(shot: Shot, ids: RatioId[]): Promise<Crop[]> {
 export async function saveCrops(crops: Crop[]): Promise<"saved" | "shared" | "downloaded"> {
   const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
   const files = crops.map(
-    (c) => new File([c.blob], `ratioshot_${stamp}_${c.ratio.id.replace(":", "x")}.jpg`, { type: "image/jpeg" }),
+    (c) => new File([c.blob ?? new Blob()], `ratioshot_${stamp}_${c.ratio.id.replace(":", "x")}.jpg`, { type: "image/jpeg" }),
   );
   if (isNative) {
-    await saveToGallery(files.map((f) => ({ blob: f, name: f.name })));
+    await saveToGallery(crops.map((c, i) => ({ blob: c.blob, path: c.path, name: files[i].name })));
     return "saved";
   }
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
